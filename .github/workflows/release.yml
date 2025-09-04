@@ -38,27 +38,23 @@ jobs:
         run: |
           mkdir -p build
           cd build
-          cmake ..
-          # Windows需要指定构建类型
-          if [ "${{ matrix.os }}" = "windows-latest" ]; then
-            cmake --build . --config Release
-          else
-            make
-          fi
+          cmake .. -DCMAKE_BUILD_TYPE=Release  # 显式指定Release模式
+          cmake --build . --config Release
 
       - name: Run binary
         run: |
           if [ "${{ matrix.os }}" = "windows-latest" ]; then
-            ./bin/Release/HelloWorld.exe
+            ./build/Release/HelloWorld.exe
           else
-            ./bin/HelloWorld
+            # 为Linux添加执行权限并正确指定路径
+            chmod +x ./build/HelloWorld
+            ./build/HelloWorld
           fi
-        working-directory: build
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: HelloWorld-${{ matrix.os }}
           path: |
-            build/bin/HelloWorld
-            build/bin/Release/HelloWorld.exe
+            build/HelloWorld
+            build/Release/HelloWorld.exe
