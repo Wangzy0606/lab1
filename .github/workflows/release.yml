@@ -2,29 +2,28 @@ name: Build(CI) and Inject Version
 
 on:
   push:
-    branches: [main, feature/github_actions]  # 修复分支名中的空格
-  workflow_dispatch:  # 允许手动触发
+    branches: [main, feature/github_actions]
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
   build:
-    runs-on: ${{ matrix.os }}  # 修复空格
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest]  # 修复空格
+        os: [ubuntu-latest, windows-latest]
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # 修复空格
+          fetch-depth: 0
 
       - name: Set up CMake
         uses: threeal/cmake-action@v2
 
-      # 计算 N：优先从最近 tag（形如 v1.0.N）解析；若无 tag 则用 1
       - name: Derive RELEASE_N
         id: version
         shell: bash
@@ -40,20 +39,26 @@ jobs:
           mkdir -p build
           cd build
           cmake ..
-          cmake --build . --config Release
+          # Windows需要指定构建类型
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            cmake --build . --config Release
+          else
+            make
+          fi
 
       - name: Run binary
         run: |
           if [ "${{ matrix.os }}" = "windows-latest" ]; then
-            ./build/Release/HelloWorld.exe
+            ./bin/Release/HelloWorld.exe
           else
-            ./build/HelloWorld
+            ./bin/HelloWorld
           fi
+        working-directory: build
 
-      - name: Upload artifact(optional)
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: HelloWorld-${{ matrix.os }}
           path: |
-            build/HelloWorld
-            build/Release/HelloWorld.exe
+            build/bin/HelloWorld
+            build/bin/Release/HelloWorld.exe
