@@ -1,0 +1,71 @@
+name: Build and Release HelloWorld
+
+on:
+  push:
+    branches: [ main, feature/github_actions ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up CMake
+        uses: threeal/cmake-action@v2
+
+      - name: Configure and Build
+        run: |
+          mkdir -p build
+          cd build
+          cmake ..
+          cmake --build . --config Release
+
+      - name: Set artifact path
+        run: |
+          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
+            echo "ARTIFACT=build/Release/HelloWorld.exe" >> $GITHUB_ENV
+          else
+            echo "ARTIFACT=build/HelloWorld" >> $GITHUB_ENV
+          fi
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: HelloWorld-${{ matrix.os }}
+          path: ${{ env.ARTIFACT }}
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release_files
+
+      - name: Get release version
+        id: get_version
+        run: |
+          VERSION_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v1.0.1")
+          echo "VERSION_TAG=$VERSION_TAG" >> $GITHUB_ENV
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ env.VERSION_TAG }}
+          name: HelloWorld ${{ env.VERSION_TAG }}
+          files: release_files/**/*
