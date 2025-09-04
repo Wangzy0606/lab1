@@ -4,6 +4,9 @@ project(HelloWorldCI)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# 统一输出目录，解决Windows和Linux路径差异
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+
 # 从环境变量获取版本号，默认为1
 if(NOT DEFINED ENV{RELEASE_N})
     set(RELEASE_N 1)
