@@ -1,71 +1,60 @@
 name: Build and Release HelloWorld
 
+# 触发条件：main分支或feature/github_actions分支有代码提交时
 on:
   push:
     branches: [ main, feature/github_actions ]
-  workflow_dispatch:
 
+# 权限配置：允许写入仓库（用于发布版本）
 permissions:
-  contents: write
+  write-all
 
 jobs:
   build:
+    # 构建环境：Windows、Ubuntu、MacOS（满足至少两种OS的要求）
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
 
     steps:
+      # 步骤1：拉取仓库代码
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # 步骤2：配置C++编译环境（基于不同OS）
       - name: Set up CMake
         uses: threeal/cmake-action@v2
 
-      - name: Configure and Build
+      # 步骤3：创建构建目录并执行CMake
+      - name: Configure CMake
         run: |
           mkdir -p build
           cd build
           cmake ..
+
+      # 步骤4：编译项目
+      - name: Build project
+        run: |
+          cd build
           cmake --build . --config Release
 
-      - name: Set artifact path
-        run: |
-          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
-            echo "ARTIFACT=build/Release/HelloWorld.exe" >> $GITHUB_ENV
-          else
-            echo "ARTIFACT=build/HelloWorld" >> $GITHUB_ENV
-          fi
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: HelloWorld-${{ matrix.os }}
-          path: ${{ env.ARTIFACT }}
-
-  release:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: release_files
-
+      # 步骤5：获取仓库发布版本号（此处简化处理，实际可通过GitHub API获取）
       - name: Get release version
         id: get_version
         run: |
+          # 示例：从仓库标签中提取版本号后缀N（需确保仓库已创建对应标签，如v1.0.1）
           VERSION_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v1.0.1")
-          echo "VERSION_TAG=$VERSION_TAG" >> $GITHUB_ENV
+          RELEASE_N=$(echo $VERSION_TAG | cut -d '.' -f 3)
+          echo "RELEASE_N=$RELEASE_N" >> $GITHUB_ENV
 
+      # 步骤6：创建发布版本（若当前提交无对应标签）
       - name: Create Release
         uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/') == false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ env.VERSION_TAG }}
-          name: HelloWorld ${{ env.VERSION_TAG }}
-          files: release_files/**/*
+          tag_name: v1.0.${{ env.RELEASE_N }}
+          name: HelloWorld Version 1.0.${{ env.RELEASE_N }}
+          files: build/Release/HelloWorld.exe # Windows产物（其他OS需调整路径）
