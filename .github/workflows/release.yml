@@ -1,8 +1,8 @@
-name: Build (CI) and Inject Version
+name: Build(CI) and Inject Version
 
 on:
   push:
-    branches: [ main, feature/github_actions ]  # 每次提交自动触发
+    branches: [main, feature/github_actions]  # 修复分支名中的空格
   workflow_dispatch:  # 允许手动触发
 
 permissions:
@@ -10,16 +10,16 @@ permissions:
 
 jobs:
   build:
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}  # 修复空格
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest]     # 至少两种 OS
+        os: [ubuntu-latest, windows-latest]  # 修复空格
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0   # 需要 tag 时建议拉完整历史
+          fetch-depth: 0  # 修复空格
 
       - name: Set up CMake
         uses: threeal/cmake-action@v2
@@ -39,7 +39,7 @@ jobs:
         run: |
           mkdir -p build
           cd build
-          cmake ..    # CMakeLists 会从 $ENV{RELEASE_N} 注入宏
+          cmake ..
           cmake --build . --config Release
 
       - name: Run binary
@@ -50,7 +50,7 @@ jobs:
             ./build/HelloWorld
           fi
 
-      - name: Upload artifact (optional)
+      - name: Upload artifact(optional)
         uses: actions/upload-artifact@v4
         with:
           name: HelloWorld-${{ matrix.os }}
